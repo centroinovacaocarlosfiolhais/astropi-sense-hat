@@ -85,10 +85,45 @@
             background: #1a1a1a;
             border-radius: 3px;
             transition: all 0.1s;
+            cursor: pointer;
         }
 
         .led-pixel.lit {
             box-shadow: 0 0 10px currentColor;
+        }
+
+        .led-pixel.drawing-mode:hover {
+            opacity: 0.7;
+            transform: scale(1.1);
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .mode-btn {
+            background: #e2e8f0;
+            color: #4a5568;
+            border: 2px solid #cbd5e0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #cbd5e0;
         }
 
         /* Controls */
@@ -120,6 +155,15 @@
             transform: translateY(0);
         }
 
+        button.generate-btn {
+            background: #48bb78;
+            flex: 1;
+        }
+
+        button.generate-btn:hover {
+            background: #38a169;
+        }
+
         /* Sensor Display */
         .sensor-data {
             display: grid;
@@ -145,6 +189,36 @@
         .sensor-item .label {
             font-size: 0.9em;
             opacity: 0.9;
+        }
+
+        /* Code Tabs */
+        .code-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: -1px;
+            flex-wrap: wrap;
+        }
+
+        .code-tab {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            opacity: 0.7;
+        }
+
+        .code-tab:hover {
+            opacity: 0.9;
+        }
+
+        .code-tab.active {
+            background: #2d3748;
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* Code Block */
@@ -186,10 +260,19 @@
             overflow-x: auto;
             font-size: 0.9em;
             line-height: 1.5;
+            max-height: 400px;
         }
 
         code {
             font-family: 'Courier New', monospace;
+        }
+
+        .code-example {
+            display: none;
+        }
+
+        .code-example.active {
+            display: block;
         }
 
         /* Joystick */
@@ -299,6 +382,15 @@
             color: #667eea;
         }
 
+        .info-box.drawing-mode {
+            background: #f0fff4;
+            border-left-color: #48bb78;
+        }
+
+        .info-box.drawing-mode strong {
+            color: #48bb78;
+        }
+
         footer {
             text-align: center;
             color: white;
@@ -319,35 +411,128 @@
             <!-- LED Matrix Card -->
             <div class="card">
                 <h2><span class="icon">💡</span> LED Matrix (8x8)</h2>
-                <div class="info-box">
-                    <strong>Try it:</strong> Click the buttons to see different LED patterns on the simulator below!
+                
+                <div class="mode-toggle">
+                    <button class="mode-btn active" onclick="setMode('demo')">🎬 Demo Mode</button>
+                    <button class="mode-btn" onclick="setMode('draw')">✏️ Draw Mode</button>
                 </div>
+
+                <div id="demoInfo" class="info-box">
+                    <strong>Try it:</strong> Click the buttons to see different LED patterns!
+                </div>
+                <div id="drawInfo" class="info-box drawing-mode" style="display: none;">
+                    <strong>Draw Mode:</strong> Click on pixels to draw (white only). Then click "Generate Code" to get your Python code!
+                </div>
+
                 <div class="led-matrix" id="ledMatrix"></div>
-                <div class="controls">
+                
+                <div id="demoControls" class="controls">
                     <button onclick="testAllRows()">Test All Rows</button>
                     <button onclick="showRainbow()">Rainbow</button>
                     <button onclick="showHeart()">Heart</button>
                     <button onclick="clearMatrix()">Clear</button>
                 </div>
 
+                <div id="drawControls" class="controls" style="display: none;">
+                    <button onclick="clearMatrix()">Clear Canvas</button>
+                    <button class="generate-btn" onclick="generateCode()">🐍 Generate Code</button>
+                </div>
+
                 <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="switchTab('basic')">Basic</button>
+                        <button class="code-tab" onclick="switchTab('heart')">Heart</button>
+                        <button class="code-tab" onclick="switchTab('rainbow')">Rainbow</button>
+                        <button class="code-tab" onclick="switchTab('custom')">Your Design</button>
+                    </div>
                     <div class="code-header">
                         <span>🐍 Python Code</span>
-                        <button class="copy-btn" onclick="copyCode('code-led')">Copy</button>
+                        <button class="copy-btn" onclick="copyActiveCode()">Copy</button>
                     </div>
-                    <pre><code id="code-led">from sense_hat import SenseHat
+                    
+                    <!-- Basic Code -->
+                    <div class="code-example active" id="code-basic">
+                        <pre><code>from sense_hat import SenseHat
 import time
 
 sense = SenseHat()
 
 # Light up a single pixel (red)
 sense.set_pixel(3, 3, 255, 0, 0)
+time.sleep(1)
 
 # Show a message
 sense.show_message("Hello CICF!", scroll_speed=0.05)
 
 # Clear the display
 sense.clear()</code></pre>
+                    </div>
+
+                    <!-- Heart Code -->
+                    <div class="code-example" id="code-heart">
+                        <pre><code>from sense_hat import SenseHat
+
+sense = SenseHat()
+
+# Define heart pattern (0 = off, 1 = on)
+heart = [
+    0,1,1,0,0,1,1,0,
+    1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,
+    0,1,1,1,1,1,1,0,
+    0,0,1,1,1,1,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,0,0,0,0,0
+]
+
+# Draw the heart (pink color)
+for i in range(64):
+    if heart[i] == 1:
+        x = i % 8
+        y = i // 8
+        sense.set_pixel(x, y, 255, 0, 100)</code></pre>
+                    </div>
+
+                    <!-- Rainbow Code -->
+                    <div class="code-example" id="code-rainbow">
+                        <pre><code>from sense_hat import SenseHat
+import time
+
+sense = SenseHat()
+
+# Rainbow colors (one per row)
+colors = [
+    [255, 0, 0],      # Red
+    [255, 127, 0],    # Orange
+    [255, 255, 0],    # Yellow
+    [0, 255, 0],      # Green
+    [0, 0, 255],      # Blue
+    [75, 0, 130],     # Indigo
+    [148, 0, 211],    # Violet
+    [255, 255, 255]   # White
+]
+
+# Draw rainbow row by row
+for y in range(8):
+    for x in range(8):
+        r, g, b = colors[y]
+        sense.set_pixel(x, y, r, g, b)
+    time.sleep(0.2)  # Animate the drawing</code></pre>
+                    </div>
+
+                    <!-- Custom Code (Generated) -->
+                    <div class="code-example" id="code-custom">
+                        <pre><code id="customCodeContent">from sense_hat import SenseHat
+
+sense = SenseHat()
+
+# Draw your custom design here
+# Click "Draw Mode" and draw on the matrix
+# Then click "Generate Code" to see your code here!
+
+sense.clear()</code></pre>
+                    </div>
                 </div>
             </div>
 
@@ -587,12 +772,66 @@ print("=" * 50)</code></pre>
         // Create LED Matrix
         const ledMatrix = document.getElementById('ledMatrix');
         const pixels = [];
+        let currentMode = 'demo';
+        let pixelStates = Array(64).fill(0); // Track pixel states for drawing mode
 
         for (let i = 0; i < 64; i++) {
             const pixel = document.createElement('div');
             pixel.className = 'led-pixel';
+            pixel.dataset.index = i;
+            pixel.addEventListener('click', handlePixelClick);
             ledMatrix.appendChild(pixel);
             pixels.push(pixel);
+        }
+
+        function handlePixelClick(e) {
+            if (currentMode !== 'draw') return;
+            
+            const index = parseInt(e.target.dataset.index);
+            pixelStates[index] = pixelStates[index] === 1 ? 0 : 1;
+            
+            if (pixelStates[index] === 1) {
+                e.target.style.backgroundColor = 'rgb(255, 255, 255)';
+                e.target.classList.add('lit');
+            } else {
+                e.target.style.backgroundColor = '#1a1a1a';
+                e.target.classList.remove('lit');
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Update mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update pixels
+            pixels.forEach(pixel => {
+                if (mode === 'draw') {
+                    pixel.classList.add('drawing-mode');
+                } else {
+                    pixel.classList.remove('drawing-mode');
+                }
+            });
+            
+            // Update UI
+            if (mode === 'demo') {
+                document.getElementById('demoInfo').style.display = 'block';
+                document.getElementById('drawInfo').style.display = 'none';
+                document.getElementById('demoControls').style.display = 'flex';
+                document.getElementById('drawControls').style.display = 'none';
+                clearMatrix();
+            } else {
+                document.getElementById('demoInfo').style.display = 'none';
+                document.getElementById('drawInfo').style.display = 'block';
+                document.getElementById('demoControls').style.display = 'none';
+                document.getElementById('drawControls').style.display = 'flex';
+                clearMatrix();
+                switchTab('custom');
+            }
         }
 
         function setPixel(x, y, r, g, b) {
@@ -608,9 +847,11 @@ print("=" * 50)</code></pre>
                 pixel.style.backgroundColor = '#1a1a1a';
                 pixel.classList.remove('lit');
             });
+            pixelStates.fill(0);
         }
 
         function testAllRows() {
+            if (currentMode !== 'demo') return;
             clearMatrix();
             let row = 0;
             const interval = setInterval(() => {
@@ -632,7 +873,9 @@ print("=" * 50)</code></pre>
         }
 
         function showRainbow() {
+            if (currentMode !== 'demo') return;
             clearMatrix();
+            switchTab('rainbow');
             const colors = [
                 [255, 0, 0],
                 [255, 127, 0],
@@ -654,7 +897,9 @@ print("=" * 50)</code></pre>
         }
 
         function showHeart() {
+            if (currentMode !== 'demo') return;
             clearMatrix();
+            switchTab('heart');
             const heart = [
                 0,1,1,0,0,1,1,0,
                 1,1,1,1,1,1,1,1,
@@ -672,6 +917,92 @@ print("=" * 50)</code></pre>
                     const y = Math.floor(i / 8);
                     setPixel(x, y, 255, 0, 100);
                 }
+            });
+        }
+
+        function generateCode() {
+            const litPixels = [];
+            pixelStates.forEach((state, i) => {
+                if (state === 1) {
+                    const x = i % 8;
+                    const y = Math.floor(i / 8);
+                    litPixels.push({x, y});
+                }
+            });
+
+            let code = `from sense_hat import SenseHat
+
+sense = SenseHat()
+
+# Your custom design
+`;
+            
+            if (litPixels.length === 0) {
+                code += `# No pixels lit yet!
+# Draw on the matrix and click "Generate Code" again
+
+sense.clear()`;
+            } else if (litPixels.length <= 10) {
+                // Simple approach for few pixels
+                code += `# Light up individual pixels (white)
+`;
+                litPixels.forEach(p => {
+                    code += `sense.set_pixel(${p.x}, ${p.y}, 255, 255, 255)\n`;
+                });
+            } else {
+                // Array approach for many pixels
+                code += `# Define your pattern (0 = off, 1 = on)
+pattern = [
+`;
+                for (let row = 0; row < 8; row++) {
+                    code += '    ';
+                    for (let col = 0; col < 8; col++) {
+                        const index = row * 8 + col;
+                        code += pixelStates[index] + ',';
+                    }
+                    code += '\n';
+                }
+                code += `]
+
+# Draw the pattern (white color)
+for i in range(64):
+    if pattern[i] == 1:
+        x = i % 8
+        y = i // 8
+        sense.set_pixel(x, y, 255, 255, 255)`;
+            }
+
+            document.getElementById('customCodeContent').textContent = code;
+            switchTab('custom');
+        }
+
+        // Code Tab Switching
+        function switchTab(tabName) {
+            // Update tabs
+            document.querySelectorAll('.code-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target?.classList.add('active');
+            
+            // Update code examples
+            document.querySelectorAll('.code-example').forEach(example => {
+                example.classList.remove('active');
+            });
+            document.getElementById(`code-${tabName}`).classList.add('active');
+        }
+
+        function copyActiveCode() {
+            const activeExample = document.querySelector('.code-example.active code');
+            const code = activeExample.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = '#38a169';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#48bb78';
+                }, 2000);
             });
         }
 
@@ -706,7 +1037,6 @@ print("=" * 50)</code></pre>
             
             orientationBox.style.transform = `rotateX(${pitch}deg) rotateY(${roll}deg)`;
             
-            // Move dot based on orientation
             const dotX = 50 + (roll * 0.3);
             const dotY = 50 + (pitch * 0.3);
             orientationDot.style.left = dotX + '%';
@@ -724,7 +1054,7 @@ print("=" * 50)</code></pre>
             }, 1500);
         }
 
-        // Copy Code
+        // Copy Code (for non-tabbed sections)
         function copyCode(elementId) {
             const code = document.getElementById(elementId).textContent;
             navigator.clipboard.writeText(code).then(() => {
@@ -739,7 +1069,7 @@ print("=" * 50)</code></pre>
             });
         }
 
-        // Initialize with some data
+        // Initialize
         simulateSensors();
     </script>
 </body>
